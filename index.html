@@ -128,7 +128,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
 
   <section id="apply">
     <h2>Apply</h2>
-    <iframe id="gform" src="https://docs.google.com/forms/d/e/1FAIpQLScjpPZ2m8C8iC5FwrwuNcWtwizWp-LEFxnMz4r-k6fp3b3hBg/viewform?embedded=true" title="Six Sense creator application form">Loading…</iframe>
+    <iframe id="gform" title="Six Sense creator application form">Loading…</iframe>
     <div id="done" hidden role="status"><b>Application received.</b> One last step: <a href="#verify">verify on TikTok</a>.</div>
     <p class="note">Form not loading? <a href="https://docs.google.com/forms/d/e/1FAIpQLScjpPZ2m8C8iC5FwrwuNcWtwizWp-LEFxnMz4r-k6fp3b3hBg/viewform?usp=header" target="_blank" rel="noopener">Open it in a new tab</a>.</p>
   </section>
@@ -191,15 +191,27 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       try{if(window.ttq)ttq.track('ClickButton',content)}catch(e){}
     });
   }
-  // Google Form submit detection: 1st iframe load = blank form, 2nd load = after submit
-  var f=document.getElementById('gform'),loads=0,sent=false;
-  if(f)f.addEventListener('load',function(){
-    loads++;
-    if(loads>=2&&!sent){
-      sent=true;
-      try{if(window.ttq){ttq.track('SubmitForm',content);ttq.track('CompleteRegistration',content)}}catch(e){}
-      var d=document.getElementById('done');if(d)d.hidden=false;
+  // Google Form: prefill tracking code (ttclid~ttp) so the server event can be matched to the ad,
+  // then detect the submit (2nd iframe load) to show the verify notice.
+  var FORM='https://docs.google.com/forms/d/e/1FAIpQLScjpPZ2m8C8iC5FwrwuNcWtwizWp-LEFxnMz4r-k6fp3b3hBg/viewform?embedded=true';
+  var TRACK_ENTRY='entry.XXXXXXXXX'; // <-- replace with your form's tracking-field entry ID
+  var f=document.getElementById('gform'),loads=0,set=false;
+  function cookie(n){var m=document.cookie.match(new RegExp('(?:^|; )'+n+'=([^;]*)'));return m?decodeURIComponent(m[1]):''}
+  function param(n){try{return new URLSearchParams(location.search).get(n)||''}catch(e){return ''}}
+  function setSrc(){
+    if(set||!f)return;set=true;
+    var src=FORM;
+    if(TRACK_ENTRY.indexOf('XXXX')<0){
+      var code=param('ttclid')+'~'+cookie('_ttp');
+      if(code!=='~')src+='&'+TRACK_ENTRY+'='+encodeURIComponent(code);
     }
+    f.src=src;
+  }
+  var tries=0,t=setInterval(function(){tries++;if(cookie('_ttp')||tries>=10){clearInterval(t);setSrc()}},200);
+  if(f)f.addEventListener('load',function(){
+    if(!set)return;
+    loads++;
+    if(loads>=2){var d=document.getElementById('done');if(d)d.hidden=false}
   });
 })();
 </script>
